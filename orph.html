@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Orph</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root, [data-theme="light"] {
+    --bg: #f8f7f3; --surface: #fff; --text: #181818; --muted: #9a9690;
+    --border: #e6e2db; --placeholder: #c5c0b8; --btn: #181818; --btn-text: #fff;
+    --toolbar-bg: #fff; --code-bg: #efece6; --toast-bg: #181818; --toast-color: #fff;
+    --history-hover: #f3f0ea; --tag-bg: #edeae4; --link-color: #1a6fb3; --shadow: rgba(0,0,0,.06);
+  }
+  [data-theme="dark"] {
+    --bg: #141414; --surface: #1e1e1e; --text: #e8e4dc; --muted: #666;
+    --border: #2a2a2a; --placeholder: #444; --btn: #e8e4dc; --btn-text: #141414;
+    --toolbar-bg: #1e1e1e; --code-bg: #252525; --toast-bg: #e8e4dc; --toast-color: #141414;
+    --history-hover: #252525; --tag-bg: #252525; --link-color: #6aaddd; --shadow: rgba(0,0,0,.3);
+  }
+
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; min-height: 100vh; transition: background .3s, color .3s; }
+
+  /* HEADER */
+  header { position: sticky; top: 0; z-index: 200; background: var(--bg); border-bottom: 1px solid var(--border); transition: background .3s, border-color .3s; }
+  .header-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; height: 54px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: baseline; gap: 2px; cursor: pointer; user-select: none; text-decoration: none; }
+  .logo-orph { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; transition: color .3s; }
+  .logo-orph em { font-style: italic; font-weight: 400; }
+  .logo-dot { width: 6px; height: 6px; background: var(--text); border-radius: 50%; margin-left: 3px; margin-bottom: 3px; flex-shrink: 0; transition: background .3s; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .autosave-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .4s; flex-shrink: 0; cursor: help; }
+  .autosave-dot.saved { background: #4caf50; }
+  .autosave-dot.saving { background: #ff9800; animation: pulse .6s infinite alternate; }
+  @keyframes pulse { to { opacity: .35; } }
+
+  .icon-btn { background: none; border: 1px solid var(--border); border-radius: 20px; padding: 4px 11px; cursor: pointer; font-size: 14px; color: var(--muted); transition: all .2s; line-height: 1; }
+  .icon-btn:hover { border-color: var(--text); color: var(--text); }
+  .text-btn { background: none; border: 1px solid var(--border); border-radius: 3px; padding: 5px 13px; cursor: pointer; font-size: 13px; font-family: 'Source Serif 4', serif; color: var(--muted); transition: all .2s; }
+  .text-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .author-chip { font-size: 13px; color: var(--muted); cursor: pointer; padding: 3px 0; border-bottom: 1px dashed var(--border); transition: color .2s, border-color .2s; font-family: 'JetBrains Mono', monospace; }
+  .author-chip:hover { color: var(--text); border-color: var(--text); }
+  .author-chip.hidden { display: none; }
+  .author-input { font-size: 13px; font-family: 'JetBrains Mono', monospace; border: none; border-bottom: 1px solid var(--text); background: transparent; outline: none; color: var(--text); width: 110px; padding: 2px 0; display: none; }
+  .author-input.visible { display: block; }
+
+  .btn { font-family: 'Source Serif 4', serif; font-size: 13px; border: none; border-radius: 3px; padding: 7px 18px; cursor: pointer; transition: all .18s; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-outline:hover { border-color: var(--text); color: var(--text); }
+  .btn-primary { background: var(--btn); color: var(--btn-text); }
+  .btn-primary:hover { opacity: .82; }
+  .btn-primary:active { transform: scale(.97); }
+
+  /* EDITOR VIEW */
+  #editor-view { max-width: 800px; margin: 0 auto; padding: 48px 24px 100px; animation: fadeUp .4s ease both; }
+
+  .toolbar { display: flex; gap: 2px; padding: 7px 10px; background: var(--toolbar-bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 4px var(--shadow); transition: background .3s, border-color .3s; }
+  .tb-btn { font-size: 13px; font-family: 'Source Serif 4', serif; background: none; border: 1px solid transparent; border-radius: 3px; padding: 4px 9px; cursor: pointer; color: var(--muted); transition: all .15s; line-height: 1.5; }
+  .tb-btn:hover { background: var(--border); color: var(--text); }
+  .tb-sep { width: 1px; background: var(--border); height: 18px; margin: 0 3px; flex-shrink: 0; }
+  .tb-input { font-size: 12px; font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); border-radius: 3px; padding: 4px 8px; outline: none; color: var(--text); background: var(--bg); width: 185px; display: none; transition: border-color .2s; }
+  .tb-input:focus { border-color: var(--text); }
+  .tb-input.visible { display: block; }
+  .tb-input.yt { width: 210px; }
+
+  #title { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 44px); font-weight: 700; line-height: 1.18; border: none; outline: none; width: 100%; background: transparent; color: var(--text); resize: none; overflow: hidden; margin-bottom: 10px; letter-spacing: -0.5px; transition: color .3s; }
+  #title::placeholder { color: var(--placeholder); }
+
+  .author-line { font-size: 14px; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .author-line span { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); }
+  .reading-time-bar { font-size: 12px; color: var(--muted); margin-bottom: 30px; font-family: 'JetBrains Mono', monospace; }
+
+  #editor { font-size: 18px; line-height: 1.8; outline: none; min-height: 280px; color: var(--text); caret-color: var(--text); transition: color .3s; }
+  #editor:empty::before { content: attr(data-placeholder); color: var(--placeholder); pointer-events: none; display: block; }
+  #editor h2 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin: 36px 0 12px; letter-spacing: -.3px; }
+  #editor h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin: 28px 0 10px; }
+  #editor p { margin-bottom: 18px; }
+  #editor blockquote { border-left: 3px solid var(--border); padding: 6px 0 6px 20px; color: var(--muted); font-style: italic; margin: 24px 0; }
+  #editor ul, #editor ol { padding-left: 28px; margin-bottom: 18px; }
+  #editor li { margin-bottom: 5px; }
+  #editor a { color: var(--link-color); text-decoration: underline; text-underline-offset: 3px; }
+  #editor img { max-width: 100%; border-radius: 4px; margin: 16px 0; display: block; }
+  #editor hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  #editor code { background: var(--code-bg); border-radius: 3px; padding: 1px 5px; font-size: 15px; font-family: 'JetBrains Mono', monospace; }
+  #editor .yt-embed { width: 100%; aspect-ratio: 16/9; border-radius: 6px; margin: 20px 0; border: none; display: block; }
+
+  .shortcuts-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .shortcut { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 3px; }
+  .key { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 10px; color: var(--muted); }
+
+  /* PUBLISHED VIEW */
+  #published-view { display: none; max-width: 800px; margin: 0 auto; padding: 56px 24px 100px; animation: fadeUp .5s ease both; }
+  .pub-meta { font-size: 13px; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pub-meta a { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); transition: border-color .2s; }
+  .pub-meta a:hover { border-color: var(--text); }
+  .pub-meta-sep { color: var(--border); }
+  .pub-rt { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  #pub-title { font-family: 'Playfair Display', serif; font-size: clamp(28px, 5vw, 44px); font-weight: 700; line-height: 1.18; letter-spacing: -0.5px; margin-bottom: 38px; color: var(--text); }
+  #pub-body { font-size: 18px; line-height: 1.8; color: var(--text); }
+  #pub-body h2 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin: 36px 0 12px; }
+  #pub-body h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin: 28px 0 10px; }
+  #pub-body p { margin-bottom: 18px; }
+  #pub-body blockquote { border-left: 3px solid var(--border); padding: 6px 0 6px 20px; color: var(--muted); font-style: italic; margin: 24px 0; }
+  #pub-body ul, #pub-body ol { padding-left: 28px; margin-bottom: 18px; }
+  #pub-body li { margin-bottom: 5px; }
+  #pub-body a { color: var(--link-color); text-decoration: underline; text-underline-offset: 3px; }
+  #pub-body img { max-width: 100%; border-radius: 4px; margin: 16px 0; display: block; }
+  #pub-body hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  #pub-body code { background: var(--code-bg); border-radius: 3px; padding: 1px 5px; font-size: 15px; font-family: 'JetBrains Mono', monospace; }
+  #pub-body .yt-embed { width: 100%; aspect-ratio: 16/9; border-radius: 6px; margin: 20px 0; border: none; display: block; }
+
+  .share-bar { display: flex; align-items: center; gap: 10px; margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .share-label { font-size: 13px; color: var(--muted); }
+  .share-url { font-size: 12px; font-family: 'JetBrains Mono', monospace; background: var(--tag-bg); padding: 7px 12px; border-radius: 3px; color: var(--text); flex: 1; min-width: 140px; word-break: break-all; cursor: pointer; }
+  .copy-btn, .tg-btn { font-size: 12px; padding: 7px 14px; border: none; border-radius: 3px; cursor: pointer; font-family: 'Source Serif 4', serif; transition: all .18s; white-space: nowrap; }
+  .copy-btn { background: var(--text); color: var(--btn-text); }
+  .copy-btn:hover { opacity: .8; }
+  .tg-btn { background: #2aabee; color: #fff; }
+  .tg-btn:hover { background: #1a9bd8; }
+
+  /* HISTORY MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 90%; max-width: 560px; max-height: 78vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.28); animation: slideUp .25s ease both; transition: background .3s, border-color .3s; }
+  .modal-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--text); }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); transition: color .2s; padding: 0 4px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { overflow-y: auto; flex: 1; }
+  .history-empty { padding: 36px 24px; text-align: center; color: var(--muted); font-size: 14px; font-style: italic; }
+  .history-item { padding: 14px 24px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .15s; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .history-item:hover { background: var(--history-hover); }
+  .history-item:last-child { border-bottom: none; }
+  .hi-title { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--text); margin-bottom: 4px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
+  .hi-meta { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .hi-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: 3px; transition: all .15s; flex-shrink: 0; }
+  .hi-del:hover { background: #ff4444; color: #fff; }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); padding: 20px 24px; display: flex; justify-content: center; align-items: center; gap: 6px; transition: border-color .3s; }
+  .footer-text { font-size: 12px; color: var(--muted); }
+  .footer-creator { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); transition: border-color .2s; padding-bottom: 1px; }
+  .footer-creator:hover { border-color: var(--text); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--toast-bg); color: var(--toast-color); font-size: 13px; font-family: 'Source Serif 4', serif; padding: 9px 22px; border-radius: 20px; opacity: 0; transition: all .28s ease; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #img-file { display: none; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 560px) {
+    .tb-btn { padding: 4px 6px; font-size: 12px; }
+    .tb-input { width: 130px; } .tb-input.yt { width: 150px; }
+    .logo-orph { font-size: 19px; }
+    .header-right { gap: 5px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" onclick="goHome()">
+      <span class="logo-orph">Or<em>ph</em></span>
+      <div class="logo-dot"></div>
+    </a>
+    <div class="header-right">
+      <div class="autosave-dot" id="autosave-dot" title="Auto-save"></div>
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">🌑</button>
+      <button class="text-btn" onclick="openHistory()">Histórico</button>
+      <span class="author-chip" id="author-chip" onclick="editAuthor()">@Orion</span>
+      <input class="author-input" id="author-input" type="text" placeholder="nome" maxlength="32"
+        onblur="saveAuthor()" onkeydown="if(event.key==='Enter')saveAuthor()"/>
+      <button class="btn btn-outline" id="btn-edit" onclick="switchToEdit()" style="display:none">Editar</button>
+      <button class="btn btn-primary" id="btn-publish" onclick="publish()">Publicar</button>
+    </div>
+  </div>
+</header>
+
+<div id="editor-view">
+  <div class="toolbar">
+    <button class="tb-btn" onclick="fmt('bold')" title="Ctrl+B"><b>B</b></button>
+    <button class="tb-btn" onclick="fmt('italic')" title="Ctrl+I"><i>I</i></button>
+    <button class="tb-btn" onclick="fmt('underline')" title="Ctrl+U"><u>U</u></button>
+    <button class="tb-btn" onclick="fmt('strikeThrough')"><s>S</s></button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="fmtBlock('h2')">H2</button>
+    <button class="tb-btn" onclick="fmtBlock('h3')">H3</button>
+    <button class="tb-btn" onclick="fmtBlock('p')">¶</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="fmt('insertUnorderedList')">• Lista</button>
+    <button class="tb-btn" onclick="fmt('insertOrderedList')">1. Lista</button>
+    <button class="tb-btn" onclick="fmtBlock('blockquote')">" Citar</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="fmtCode()">&#60;/&#62;</button>
+    <button class="tb-btn" onclick="insertHR()">— HR</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="toggleInput('tb-link-input')" title="Ctrl+K">🔗 Link</button>
+    <input class="tb-input" id="tb-link-input" type="url" placeholder="https://..."
+      onkeydown="if(event.key==='Enter')insertLink()"/>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="toggleInput('tb-yt-input')">▶ YouTube</button>
+    <input class="tb-input yt" id="tb-yt-input" type="url" placeholder="URL do YouTube..."
+      onkeydown="if(event.key==='Enter')insertYouTube()"/>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="document.getElementById('img-file').click()">📷</button>
+    <input type="file" id="img-file" accept="image/*" onchange="insertImage(event)"/>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="document.execCommand('undo')" title="Ctrl+Z">↩</button>
+    <button class="tb-btn" onclick="document.execCommand('redo')" title="Ctrl+Y">↪</button>
+  </div>
+
+  <textarea id="title" placeholder="Título" rows="1"
+    oninput="autoResize(this); updateStats(); triggerAutoSave()"></textarea>
+
+  <div class="author-line">por <span id="author-display">@Orion</span></div>
+  <div class="reading-time-bar" id="reading-time">0 min de leitura · 0 palavras</div>
+
+  <div id="editor" contenteditable="true" data-placeholder="Conte sua história..."
+    oninput="updateStats(); triggerAutoSave()"
+    onkeydown="handleEditorKey(event)"></div>
+
+  <div class="shortcuts-row">
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">B</span> Negrito</span>
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">I</span> Itálico</span>
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">U</span> Sublinhado</span>
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">K</span> Link</span>
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">S</span> Salvar</span>
+    <span class="shortcut"><span class="key">Ctrl</span>+<span class="key">P</span> Publicar</span>
+  </div>
+</div>
+
+<div id="published-view">
+  <div class="pub-meta">
+    <a href="https://t.me/Guizin16z" target="_blank" id="pub-author">@Orion</a>
+    <span class="pub-meta-sep">·</span>
+    <span id="pub-date"></span>
+    <span class="pub-meta-sep">·</span>
+    <span class="pub-rt" id="pub-rt"></span>
+  </div>
+  <div id="pub-title"></div>
+  <div id="pub-body"></div>
+  <div class="share-bar">
+    <span class="share-label">Link:</span>
+    <span class="share-url" id="share-url" onclick="copyUrl()"></span>
+    <button class="copy-btn" onclick="copyUrl()">Copiar</button>
+    <button class="tg-btn" onclick="shareOnTelegram()">✈ Telegram</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal-overlay" id="history-modal" onclick="closeHistoryOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Histórico de artigos</span>
+      <button class="modal-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="modal-body" id="history-list"></div>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-text">Criado por</span>
+  <a class="footer-creator" href="https://t.me/Guizin16z" target="_blank">@Guizin16z</a>
+  <span class="footer-text">· Orph © 2026</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── THEME ────────────────────────────────────────────────
+let theme = localStorage.getItem('orph-theme') || 'light';
+applyTheme(theme);
+function applyTheme(t) {
+  theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️' : '🌑';
+  localStorage.setItem('orph-theme', t);
+}
+function toggleTheme() { applyTheme(theme === 'dark' ? 'light' : 'dark'); }
+
+// ── AUTHOR ───────────────────────────────────────────────
+let authorName = localStorage.getItem('orph-author') || 'Orion';
+setAuthorDisplay(authorName);
+function setAuthorDisplay(n) {
+  ['author-chip','author-display','pub-author'].forEach(id => document.getElementById(id).textContent = '@' + n);
+}
+function editAuthor() {
+  document.getElementById('author-chip').classList.add('hidden');
+  const inp = document.getElementById('author-input');
+  inp.classList.add('visible'); inp.value = authorName; inp.focus(); inp.select();
+}
+function saveAuthor() {
+  const inp = document.getElementById('author-input');
+  const val = inp.value.trim().replace(/[^a-zA-Z0-9_\-\.]/g,'') || 'Orion';
+  authorName = val; localStorage.setItem('orph-author', val); setAuthorDisplay(val);
+  inp.classList.remove('visible'); document.getElementById('author-chip').classList.remove('hidden');
+}
+
+// ── FORMATTING ───────────────────────────────────────────
+function fmt(cmd) { document.getElementById('editor').focus(); document.execCommand(cmd, false, null); }
+function fmtBlock(tag) { document.getElementById('editor').focus(); document.execCommand('formatBlock', false, tag); }
+function fmtCode() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const code = document.createElement('code');
+  try { sel.getRangeAt(0).surroundContents(code); } catch(e) {}
+}
+function insertHR() { document.getElementById('editor').focus(); document.execCommand('insertHTML', false, '<hr/>'); }
+function toggleInput(id) {
+  ['tb-link-input','tb-yt-input'].forEach(i => { if (i !== id) document.getElementById(i).classList.remove('visible'); });
+  const inp = document.getElementById(id);
+  inp.classList.toggle('visible');
+  if (inp.classList.contains('visible')) inp.focus();
+}
+function insertLink() {
+  const inp = document.getElementById('tb-link-input');
+  const url = inp.value.trim(); if (!url) return;
+  document.getElementById('editor').focus();
+  document.execCommand('createLink', false, url);
+  inp.value = ''; inp.classList.remove('visible'); showToast('Link inserido!');
+}
+function insertYouTube() {
+  const inp = document.getElementById('tb-yt-input');
+  const url = inp.value.trim(); if (!url) return;
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (!m) { showToast('URL inválida ⚠️'); return; }
+  document.getElementById('editor').focus();
+  document.execCommand('insertHTML', false,
+    `<iframe class="yt-embed" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen loading="lazy"></iframe>`);
+  inp.value = ''; inp.classList.remove('visible');
+  showToast('Vídeo inserido ▶'); triggerAutoSave();
+}
+function insertImage(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('editor').focus(); document.execCommand('insertHTML', false, `<img src="${ev.target.result}" alt=""/>`); triggerAutoSave(); };
+  r.readAsDataURL(file); e.target.value = '';
+}
+function handleEditorKey(e) {
+  if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;'); }
+}
+
+// ── GLOBAL SHORTCUTS ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'k' || e.key === 'K') { e.preventDefault(); toggleInput('tb-link-input'); }
+    if (e.key === 's' || e.key === 'S') { e.preventDefault(); saveDraft(); showToast('Rascunho salvo ✓'); setDot('saved'); }
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); publish(); }
+  }
+});
+
+// ── TITLE AUTO-RESIZE ────────────────────────────────────
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+document.getElementById('title').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('editor').focus(); }
+});
+
+// ── STATS ────────────────────────────────────────────────
+function updateStats() {
+  const txt = (document.getElementById('title').value + ' ' + (document.getElementById('editor').innerText||'')).trim();
+  const words = txt ? txt.split(/\s+/).filter(Boolean).length : 0;
+  const mins = Math.max(1, Math.ceil(words / 200));
+  document.getElementById('reading-time').textContent = `${mins} min de leitura · ${words} palavra${words!==1?'s':''}`;
+}
+
+// ── AUTO-SAVE ────────────────────────────────────────────
+let saveTimer = null;
+function setDot(state) {
+  const d = document.getElementById('autosave-dot');
+  d.classList.remove('saved','saving');
+  if (state) d.classList.add(state);
+}
+function saveDraft() {
+  localStorage.setItem('orph-draft-title', document.getElementById('title').value);
+  localStorage.setItem('orph-draft-body',  document.getElementById('editor').innerHTML);
+}
+function triggerAutoSave() {
+  setDot('saving'); clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveDraft(); setDot('saved'); }, 1200);
+}
+
+// Restore draft
+(function() {
+  const t = localStorage.getItem('orph-draft-title');
+  const b = localStorage.getItem('orph-draft-body');
+  if (t) { document.getElementById('title').value = t; autoResize(document.getElementById('title')); }
+  if (b) { document.getElementById('editor').innerHTML = b; }
+  updateStats();
+  if (t || b) { setDot('saved'); showToast('Rascunho restaurado ✓'); }
+})();
+
+// ── PUBLISH ──────────────────────────────────────────────
+function publish() {
+  const title = document.getElementById('title').value.trim();
+  const body  = document.getElementById('editor').innerHTML.trim();
+  if (!title && !body) { showToast('Escreva algo antes de publicar 😉'); return; }
+  const words = ((document.getElementById('editor').innerText)||'').trim().split(/\s+/).filter(Boolean).length;
+  const mins = Math.max(1, Math.ceil(words / 200));
+
+  document.getElementById('pub-title').textContent  = title || 'Sem título';
+  document.getElementById('pub-body').innerHTML     = body  || '<p><em>(sem conteúdo)</em></p>';
+  document.getElementById('pub-author').textContent = '@' + authorName;
+  document.getElementById('pub-date').textContent   = formatDate(new Date());
+  document.getElementById('pub-rt').textContent     = `${mins} min de leitura`;
+  document.getElementById('share-url').textContent  = window.location.href;
+
+  saveToHistory({ title: title||'Sem título', body, date: new Date().toISOString(), words });
+
+  document.getElementById('editor-view').style.display    = 'none';
+  document.getElementById('published-view').style.display = 'block';
+  document.getElementById('btn-edit').style.display       = 'inline-block';
+  document.getElementById('btn-publish').style.display    = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('Publicado com sucesso! 🎉');
+}
+function switchToEdit() {
+  document.getElementById('published-view').style.display = 'none';
+  document.getElementById('editor-view').style.display    = 'block';
+  document.getElementById('btn-edit').style.display       = 'none';
+  document.getElementById('btn-publish').style.display    = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function goHome() { if (document.getElementById('published-view').style.display === 'block') switchToEdit(); }
+
+// ── HISTORY ──────────────────────────────────────────────
+function getHistory() { try { return JSON.parse(localStorage.getItem('orph-history')||'[]'); } catch { return []; } }
+function saveToHistory(a) {
+  const h = getHistory(); h.unshift({...a, id: Date.now()});
+  if (h.length > 50) h.pop();
+  localStorage.setItem('orph-history', JSON.stringify(h));
+}
+function deleteFromHistory(id) {
+  localStorage.setItem('orph-history', JSON.stringify(getHistory().filter(a => a.id !== id)));
+  renderHistory();
+}
+function loadFromHistory(a) {
+  document.getElementById('title').value = a.title; autoResize(document.getElementById('title'));
+  document.getElementById('editor').innerHTML = a.body; updateStats();
+  closeHistory(); switchToEdit(); showToast('Artigo carregado!');
+}
+function renderHistory() {
+  const h = getHistory();
+  const list = document.getElementById('history-list');
+  if (!h.length) { list.innerHTML = '<div class="history-empty">Nenhum artigo publicado ainda.</div>'; return; }
+  list.innerHTML = h.map(a => `
+    <div class="history-item">
+      <div style="flex:1;min-width:0" onclick='loadFromHistory(${JSON.stringify(a).replace(/'/g,"&#39;")})'>
+        <div class="hi-title">${esc(a.title)}</div>
+        <div class="hi-meta">${formatDate(new Date(a.date))} · ${a.words||0} palavras</div>
+      </div>
+      <button class="hi-del" onclick="event.stopPropagation();deleteFromHistory(${a.id})">✕</button>
+    </div>`).join('');
+}
+function openHistory() { renderHistory(); document.getElementById('history-modal').classList.add('open'); }
+function closeHistory() { document.getElementById('history-modal').classList.remove('open'); }
+function closeHistoryOutside(e) { if (e.target.id === 'history-modal') closeHistory(); }
+
+// ── SHARE ────────────────────────────────────────────────
+function copyUrl() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => showToast('Link copiado!')).catch(() => {
+    const el = Object.assign(document.createElement('textarea'), {value: url});
+    document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    showToast('Link copiado!');
+  });
+}
+function shareOnTelegram() {
+  const title = document.getElementById('pub-title').textContent || 'Artigo';
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(title+' — via Orph')}`, '_blank');
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function formatDate(d) { return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'}); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
